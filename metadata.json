@@ -1,0 +1,6 @@
+{
+  "name": "StepSight",
+  "description": "AI-powered vision and voice walking assistant for visually impaired and low-vision individuals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
