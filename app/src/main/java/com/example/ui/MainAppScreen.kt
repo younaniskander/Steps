@@ -15,11 +15,11 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -102,7 +102,7 @@ fun MainAppScreen(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.VolumeUp,
+                                    imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                                     contentDescription = null,
                                     tint = if (uiState.audioEnabled) TextDark else TextMuted,
                                     modifier = Modifier.size(24.dp)
@@ -131,7 +131,7 @@ fun MainAppScreen(
                     onClick = { viewModel.setAppMode(AppMode.WALK) },
                     icon = {
                         Icon(
-                            imageVector = Icons.Default.DirectionsWalk,
+                            imageVector = Icons.AutoMirrored.Filled.DirectionsWalk,
                             contentDescription = "Walk Obstacle Mode",
                             modifier = Modifier.size(26.dp)
                         )

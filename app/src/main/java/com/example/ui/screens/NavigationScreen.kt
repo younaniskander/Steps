@@ -19,8 +19,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.LocalPharmacy
 import androidx.compose.material.icons.filled.Navigation
@@ -28,7 +29,6 @@ import androidx.compose.material.icons.filled.Park
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Train
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -302,7 +302,7 @@ private fun ActiveGuidanceCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.VolumeUp,
+                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                             contentDescription = "Speak direction",
                             tint = HighVisYellow,
                             modifier = Modifier.size(22.dp)
@@ -332,7 +332,7 @@ private fun PlaceCard(
         "health" -> Icons.Default.LocalPharmacy
         "shopping" -> Icons.Default.ShoppingCart
         "park" -> Icons.Default.Park
-        else -> Icons.Default.DirectionsWalk
+        else -> Icons.AutoMirrored.Filled.DirectionsWalk
     }
 
     Card(
