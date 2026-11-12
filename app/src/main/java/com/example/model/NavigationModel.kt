@@ -7,6 +7,11 @@ enum class AppMode {
     SETTINGS     // Accessibility, speech rate, haptic settings
 }
 
+enum class AIModelEngine(val displayName: String, val description: String) {
+    GEMINI_3_8_FLASH("Gemini 3.8 Flash", "Built-in Google Multimodal AI for live obstacle detection"),
+    NEXT_OCR_THELAMAPI("Next-OCR (thelamapi/next-ocr)", "Specialized 8B Vision-Language OCR model for text & signs")
+}
+
 data class NavigationTarget(
     val id: String,
     val name: String,

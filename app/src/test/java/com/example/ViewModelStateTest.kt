@@ -96,4 +96,18 @@ class ViewModelStateTest {
         assertEquals(4, presets.size)
         assertEquals("Nearest Transit Station", presets[0].name)
     }
+
+    @Test
+    fun `test AI model engine switching and Next-OCR configuration`() {
+        assertEquals(com.example.model.AIModelEngine.GEMINI_3_8_FLASH, viewModel.uiState.value.selectedModelEngine)
+
+        viewModel.setAiModelEngine(com.example.model.AIModelEngine.NEXT_OCR_THELAMAPI)
+        assertEquals(com.example.model.AIModelEngine.NEXT_OCR_THELAMAPI, viewModel.uiState.value.selectedModelEngine)
+
+        viewModel.setHfApiToken("hf_testtoken123")
+        assertEquals("hf_testtoken123", viewModel.uiState.value.hfApiToken)
+
+        viewModel.setCustomOcrEndpoint("http://10.0.2.2:8000/v1/chat/completions")
+        assertEquals("http://10.0.2.2:8000/v1/chat/completions", viewModel.uiState.value.customOcrEndpoint)
+    }
 }

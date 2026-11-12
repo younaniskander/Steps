@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.model.AIModelEngine
 import com.example.model.AppMode
 import com.example.model.HazardUrgency
 import com.example.model.NavigationGuide
@@ -12,6 +13,7 @@ import com.example.model.NavigationTarget
 import com.example.model.ObstacleAssessment
 import com.example.service.AudioHapticManager
 import com.example.service.LocationAndCompassManager
+import com.example.service.NextOcrService
 import com.example.service.StepSightAiService
 import com.example.util.ImageUtils
 import kotlinx.coroutines.CancellationException
@@ -43,6 +45,9 @@ data class StepSightUiState(
     val searchResults: List<NavigationTarget> = emptyList(),
     val isSearching: Boolean = false,
     val currentMode: AppMode = AppMode.WALK,
+    val selectedModelEngine: AIModelEngine = AIModelEngine.GEMINI_3_8_FLASH,
+    val hfApiToken: String = "",
+    val customOcrEndpoint: String = NextOcrService.DEFAULT_ENDPOINT,
     val isSafetySimMode: Boolean = false,
     val activeSimScenario: String? = null,
     val errorMessage: String? = null
@@ -51,6 +56,7 @@ data class StepSightUiState(
 class StepSightViewModel(application: Application) : AndroidViewModel(application) {
 
     private val aiService = StepSightAiService()
+    private val nextOcrService = NextOcrService()
     val audioHapticManager = AudioHapticManager(application)
     val locationCompassManager = LocationAndCompassManager(application, viewModelScope)
 
@@ -150,7 +156,41 @@ class StepSightViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun processObstacleFrame(bitmap: Bitmap) {
         _uiState.update { it.copy(isProcessingFrame = true, errorMessage = null) }
         try {
-            val assessment = aiService.analyzeWalkingPath(bitmap)
+            val engine = _uiState.value.selectedModelEngine
+            val assessment = if (engine == AIModelEngine.NEXT_OCR_THELAMAPI && _uiState.value.hfApiToken.isNotBlank()) {
+                val ocrResult = nextOcrService.processImage(
+                    bitmap = bitmap,
+                    prompt = "Analyze walking hazards. Is there an immediate curb, stairs down, dropoff, pole, bicycle or person in path? Respond with a single concise safety warning under 12 words or state 'Path clear ahead'.",
+                    apiToken = _uiState.value.hfApiToken,
+                    endpointUrl = _uiState.value.customOcrEndpoint
+                )
+                if (ocrResult.isSuccess) {
+                    val prompt = ocrResult.getOrNull() ?: "Path clear ahead."
+                    val hasHazard = !prompt.contains("clear", ignoreCase = true)
+                    val urgency = if (prompt.contains("danger", ignoreCase = true) || prompt.contains("stair", ignoreCase = true) || prompt.contains("drop", ignoreCase = true)) {
+                        HazardUrgency.CRITICAL
+                    } else if (hasHazard) {
+                        HazardUrgency.CAUTION
+                    } else {
+                        HazardUrgency.CLEAR
+                    }
+                    ObstacleAssessment(
+                        hasHazard = hasHazard,
+                        hazardType = if (hasHazard) "Detected by Next-OCR" else "Path Clear",
+                        clockPosition = "12 o'clock",
+                        distanceEstimate = "Ahead",
+                        speechPrompt = prompt,
+                        recommendation = if (hasHazard) "Proceed with caution" else "Walk straight",
+                        urgency = urgency
+                    )
+                } else {
+                    // Fall back to built-in Gemini for uninterrupted physical safety
+                    aiService.analyzeWalkingPath(bitmap)
+                }
+            } else {
+                aiService.analyzeWalkingPath(bitmap)
+            }
+
             Log.d(TAG, "Assessment received: ${assessment.speechPrompt} (${assessment.urgency})")
 
             _uiState.update {
@@ -180,7 +220,8 @@ class StepSightViewModel(application: Application) : AndroidViewModel(applicatio
     fun describeSurroundings() {
         viewModelScope.launch {
             _uiState.update { it.copy(isDescribingScene = true, errorMessage = null) }
-            audioHapticManager.speak("Analyzing surrounding scene. Please hold still.", isUrgent = true)
+            val engine = _uiState.value.selectedModelEngine
+            audioHapticManager.speak("Analyzing surrounding scene with ${engine.displayName}. Please hold still.", isUrgent = true)
 
             try {
                 val bitmap = if (_uiState.value.isSafetySimMode && _uiState.value.activeSimScenario != null) {
@@ -189,7 +230,25 @@ class StepSightViewModel(application: Application) : AndroidViewModel(applicatio
                     latestBitmap ?: ImageUtils.createSimulatedScene("curb_dropoff")
                 }
 
-                val description = aiService.describeSurroundings(bitmap)
+                val description = if (engine == AIModelEngine.NEXT_OCR_THELAMAPI) {
+                    val result = nextOcrService.processImage(
+                        bitmap = bitmap,
+                        prompt = "Perform accurate OCR and scene reading. Extract and read all text, store names, room numbers, street signs, labels, doors, and key visual landmarks for a visually impaired user.",
+                        apiToken = _uiState.value.hfApiToken,
+                        endpointUrl = _uiState.value.customOcrEndpoint
+                    )
+                    if (result.isSuccess) {
+                        result.getOrNull()?.ifBlank { "Next-OCR found no text or recognizable objects in this frame." }
+                            ?: "Next-OCR returned empty text."
+                    } else {
+                        val error = result.exceptionOrNull()?.localizedMessage ?: "Connection error"
+                        Log.w(TAG, "Next-OCR call failed: $error. Falling back to Gemini.")
+                        "Next-OCR Note: Please check your Hugging Face API token in Settings ($error).\n\n(Gemini Reading):\n" + aiService.describeSurroundings(bitmap)
+                    }
+                } else {
+                    aiService.describeSurroundings(bitmap)
+                }
+
                 _uiState.update {
                     it.copy(
                         isDescribingScene = false,
@@ -209,6 +268,22 @@ class StepSightViewModel(application: Application) : AndroidViewModel(applicatio
                 }
             }
         }
+    }
+
+    fun setAiModelEngine(engine: AIModelEngine) {
+        _uiState.update { it.copy(selectedModelEngine = engine) }
+        audioHapticManager.speak("AI model switched to ${engine.displayName}", isUrgent = true)
+        audioHapticManager.vibrateCaution()
+    }
+
+    fun setHfApiToken(token: String) {
+        _uiState.update { it.copy(hfApiToken = token.trim()) }
+        audioHapticManager.speak("Hugging Face API token saved", isUrgent = false)
+    }
+
+    fun setCustomOcrEndpoint(url: String) {
+        _uiState.update { it.copy(customOcrEndpoint = url.trim()) }
+        audioHapticManager.speak("Next-OCR endpoint URL updated", isUrgent = false)
     }
 
     fun setDestination(target: NavigationTarget?) {

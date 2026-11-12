@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.model.AIModelEngine
 import com.example.ui.StepSightUiState
 import com.example.ui.StepSightViewModel
 import com.example.ui.theme.DarkBackground
@@ -67,16 +68,42 @@ fun ExploreScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header
+        // Header with Active Model Engine Badge
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Environment Reader",
+                color = HighVisYellow,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.5.sp
+            )
+
+            Surface(
+                color = if (uiState.selectedModelEngine == AIModelEngine.NEXT_OCR_THELAMAPI) NavBlue.copy(alpha = 0.2f) else HighVisYellow.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (uiState.selectedModelEngine == AIModelEngine.NEXT_OCR_THELAMAPI) NavBlue else HighVisYellow
+                )
+            ) {
+                Text(
+                    text = if (uiState.selectedModelEngine == AIModelEngine.NEXT_OCR_THELAMAPI) "thelamapi/next-ocr" else "Gemini 3.8",
+                    color = if (uiState.selectedModelEngine == AIModelEngine.NEXT_OCR_THELAMAPI) NavBlue else HighVisYellow,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
         Text(
-            text = "Environment Reader",
-            color = HighVisYellow,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 0.5.sp
-        )
-        Text(
-            text = "StepSight uses Gemini vision to describe doors, signs, crosswalks, text, and landmark objects.",
+            text = if (uiState.selectedModelEngine == AIModelEngine.NEXT_OCR_THELAMAPI)
+                "Using thelamapi/next-ocr 8B Vision-Language model for high-accuracy OCR, signage, room numbers, and text extraction."
+            else
+                "StepSight uses Gemini vision to describe doors, signs, crosswalks, text, and landmark objects.",
             color = TextMuted,
             fontSize = 14.sp,
             lineHeight = 20.sp

@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Vibration
@@ -29,15 +30,22 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.model.AIModelEngine
 import com.example.ui.StepSightUiState
 import com.example.ui.StepSightViewModel
 import com.example.ui.theme.DarkBackground
@@ -73,6 +81,144 @@ fun SettingsScreen(
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 0.5.sp
         )
+
+        // AI Vision & OCR Engine Selection Card
+        var inputToken by remember(uiState.hfApiToken) { mutableStateOf(uiState.hfApiToken) }
+        var inputEndpoint by remember(uiState.customOcrEndpoint) { mutableStateOf(uiState.customOcrEndpoint) }
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, HighVisYellow.copy(alpha = 0.3f), RoundedCornerShape(18.dp))
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Psychology,
+                        contentDescription = null,
+                        tint = HighVisYellow,
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "AI Vision & OCR Model",
+                        color = TextWhite,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Text(
+                    text = "Choose which model analyzes camera obstacles and performs OCR on signs:",
+                    color = TextMuted,
+                    fontSize = 13.sp
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = uiState.selectedModelEngine == AIModelEngine.GEMINI_3_8_FLASH,
+                        onClick = { viewModel.setAiModelEngine(AIModelEngine.GEMINI_3_8_FLASH) },
+                        label = { Text("Gemini 3.8 Flash (Free)", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = HighVisYellow,
+                            selectedLabelColor = TextDark,
+                            containerColor = DarkSurfaceCard,
+                            labelColor = TextWhite
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    FilterChip(
+                        selected = uiState.selectedModelEngine == AIModelEngine.NEXT_OCR_THELAMAPI,
+                        onClick = { viewModel.setAiModelEngine(AIModelEngine.NEXT_OCR_THELAMAPI) },
+                        label = { Text("Next-OCR (thelamapi)", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = NavBlue,
+                            selectedLabelColor = TextDark,
+                            containerColor = DarkSurfaceCard,
+                            labelColor = TextWhite
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (uiState.selectedModelEngine == AIModelEngine.NEXT_OCR_THELAMAPI) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DarkSurfaceCard, RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = "Next-OCR (thelamapi/next-ocr) Settings",
+                            color = NavBlue,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "Connect via Hugging Face Inference API or your local Python backend server:",
+                            color = TextHighContrast,
+                            fontSize = 12.sp
+                        )
+
+                        OutlinedTextField(
+                            value = inputToken,
+                            onValueChange = { inputToken = it },
+                            label = { Text("Hugging Face API Token (hf_...)", color = TextMuted, fontSize = 12.sp) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = NavBlue,
+                                unfocusedBorderColor = DarkSurface,
+                                focusedTextColor = TextWhite,
+                                unfocusedTextColor = TextWhite
+                            ),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = inputEndpoint,
+                            onValueChange = { inputEndpoint = it },
+                            label = { Text("Model Endpoint URL", color = TextMuted, fontSize = 12.sp) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = NavBlue,
+                                unfocusedBorderColor = DarkSurface,
+                                focusedTextColor = TextWhite,
+                                unfocusedTextColor = TextWhite
+                            ),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+
+                        Button(
+                            onClick = {
+                                viewModel.setHfApiToken(inputToken)
+                                viewModel.setCustomOcrEndpoint(inputEndpoint)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NavBlue,
+                                contentColor = TextDark
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("SAVE NEXT-OCR CONFIG", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
 
         // Feedback Toggles Card
         Card(
